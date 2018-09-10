@@ -16,8 +16,8 @@ const MonsterHistory = (props: MonsterHistoryProps) => (
         <tr>
           <th>Time</th>
           <th>Action</th>
-          <th className="is-hidden-mobile">Author</th>
-          <th className="is-hidden-mobile">Transaction</th>
+          <th>Author</th>
+          <th>Transaction</th>
         </tr>
       </thead>
       <tbody>
@@ -26,8 +26,8 @@ const MonsterHistory = (props: MonsterHistoryProps) => (
         <tr key={index}>
           <td>{moment(action.createdAt).format("MMMM, D YYYY @ h:mm a")}</td>
           <td><MonsterActionLabel action={action.action} /></td>
-          <td className="is-hidden-mobile">{action.author}</td>
-          <td className="is-hidden-mobile">
+          <td>{action.author}</td>
+          <td>
             <TransactionLink id={action.transaction} />
           </td>
         </tr>

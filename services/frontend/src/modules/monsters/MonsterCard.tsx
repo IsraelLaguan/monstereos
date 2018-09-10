@@ -1,7 +1,7 @@
 import * as React from "react"
 import * as moment from "moment"
-import { MonsterProps, monsterImageSrc } from "./monsters"
-import { State, GlobalConfig, NOTIFICATION_SUCCESS, pushNotification, NOTIFICATION_ERROR, NOTIFICATION_WARNING } from "../../store"
+import { MonsterProps } from "./monsters"
+import { State, GlobalConfig } from "../../store"
 import { connect } from "react-redux"
 import { getEosAccount } from "../../utils/scatter"
 import { trxPet } from "../../utils/eos"
@@ -11,40 +11,26 @@ interface Props {
   monster: MonsterProps,
   eosAccount: string,
   globalConfig: GlobalConfig,
-  requestUpdate?: any,
-  dispatchPushNotification: any,
-  scatter: any,
-  selected?: boolean,
-  hideLink?: boolean,
-  hideActions?: boolean,
-  customActions?: MonsterAction[]
-}
-
-export interface MonsterAction {
-  label: string,
-  action: any
+  requestUpdate: any,
+  scatter: any
 }
 
 class MonsterCard extends React.Component<Props, {}> {
 
   public render() {
 
-    const { monster, eosAccount, selected } = this.props
+    const { monster, eosAccount } = this.props
 
     const hasControl = eosAccount === monster.owner
 
-    const selectedClass = selected ? "monster-selected" : ""
-
     return (
-      <div className="column monster-column">
-        <div className={`card ${selectedClass}`}>
-          <div className="card-content">
-            {this.renderHeader()}
-          </div>
-          {this.renderImage()}
-          {!monster.deathAt && this.renderStats()}
-          {hasControl && this.renderFooter()}
+      <div className="card">
+        <div className="card-content">
+          {this.renderHeader()}
         </div>
+        {this.renderImage()}
+        {!monster.deathAt && this.renderStats()}
+        {hasControl && this.renderFooter()}
       </div>
     )
   }
@@ -54,7 +40,7 @@ class MonsterCard extends React.Component<Props, {}> {
     const { monster } = this.props
 
     const figureClass = `image monster-image ${monster.deathAt ? "grayscale" : ""}`
-    const monsterImage = monsterImageSrc(monster.type)
+    const monsterImage = `/images/monsters/monster-${monster.type}.png`
 
     const sleepingClass = monster.isSleeping ? "sleeping" : ""
     const sleepingAnimation = monster.isSleeping && <img src="/images/zzz.gif" className="sleep-gif" />
@@ -74,7 +60,7 @@ class MonsterCard extends React.Component<Props, {}> {
 
   private renderHeader() {
 
-    const { monster, hideLink } = this.props
+    const { monster } = this.props
 
     // const createdAt = moment(monster.createdAt)
     // const createdAtText = createdAt.format("MMMM, D YYYY @ h:mm a")
@@ -87,33 +73,28 @@ class MonsterCard extends React.Component<Props, {}> {
     const aliveDuration = (monster.deathAt ? monster.deathAt : Date.now()) - monster.createdAt
     const aliveDurationText = moment.duration(aliveDuration).humanize()
 
-    const headerContent =
-      <React.Fragment>
-        <span className={`title is-4 ${monster.deathAt ? "has-text-danger" : ""}`}>
-          {monster.name}
-          <small className="is-pulled-right">#{monster.id}</small>
-        </span>
-        <br/>
-        { monster.deathAt ?
-        <React.Fragment>
-          <span className="is-6 has-text-danger">Stayed alive for {aliveDurationText}</span>
-          <br/>
-          <span className="is-6 has-text-danger"><time dateTime={deathAtIso}>DEAD IN {deathAtText}</time></span>
-        </React.Fragment>
-        : <span className="has-text-success">Is alive for {aliveDurationText}</span>
-        }
-      </React.Fragment>
-
     return (
-      <div className="monster-card-header">
-        { !hideLink ?
-          <Link to={`/monster/${monster.id}`} className="monster-header-link">
-            {headerContent}
-          </Link>
-        :
-          headerContent
-        }
-      </div>
+      <React.Fragment>
+        <div className="monster-card-header">
+          <p>
+            <Link to={`/monster/${monster.id}`}>
+              <span className={`title is-4 ${monster.deathAt ? "has-text-danger" : ""}`}>
+                {monster.name}
+                <small className="is-pulled-right">#{monster.id}</small>
+              </span>
+              <br/>
+              { monster.deathAt ?
+              <React.Fragment>
+                <span className="is-6 has-text-danger">Stayed alive for {aliveDurationText}</span>
+                <br/>
+                <span className="is-6 has-text-danger"><time dateTime={deathAtIso}>DEAD IN {deathAtText}</time></span>
+              </React.Fragment>
+              : <span className="has-text-success">Is alive for {aliveDurationText}</span>
+              }
+            </Link>
+          </p>
+        </div>
+      </React.Fragment>
     )
   }
 
@@ -140,32 +121,20 @@ class MonsterCard extends React.Component<Props, {}> {
 
   private renderFooter() {
 
-    const { monster, hideActions, customActions } = this.props
-
-    let actions: MonsterAction[] = []
-
-    if (!hideActions && monster.deathAt) {
-      actions.push({action: this.requestDestroy, label: "Delete Monster"})
-    } else if (!hideActions && monster.isSleeping) {
-      actions.push({action: this.requestAwake, label: "Wake up!"})
-    } else if (!hideActions) {
-      actions.push({action: this.requestFeed, label: "Feed"})
-      actions.push({action: this.requestSleep, label: "Bed Time!"})
-    }
-
-    if (customActions) {
-      actions = actions.concat(customActions)
-    }
+    const { monster } = this.props
 
     return (
       <footer className="card-footer">
-        {actions.map((action, index) => (
-          <a key={index}
-            className="card-footer-item"
-            onClick={action.action}>
-            {action.label}
-          </a>
-        ))}
+        {
+          monster.deathAt ?
+            <a className="card-footer-item" onClick={this.requestDestroy}>Delete Monster</a> :
+          monster.isSleeping ?
+            <a className="card-footer-item" onClick={this.requestAwake}>Wake up!</a> :
+            <React.Fragment>
+              <a className="card-footer-item" onClick={this.requestFeed}>Feed</a>
+              <a className="card-footer-item" onClick={this.requestSleep}>Bed Time!</a>
+            </React.Fragment>
+        }
       </footer>
     )
   }
@@ -173,9 +142,9 @@ class MonsterCard extends React.Component<Props, {}> {
   private requestFeed = () => {
     const { monster, globalConfig } = this.props
 
-    const feedInterval = (Date.now() - monster.lastFeedAt) / 1000
+    const feedInterval = Date.now() - monster.lastFeedAt
     if (feedInterval < globalConfig.min_hunger_interval) {
-      return this.warnAction(`${monster.name} is not hungry yet`)
+      return alert(`${monster.name} is not hungry yet`)
     }
 
     this.petAction("feedpet", "feed")
@@ -184,9 +153,9 @@ class MonsterCard extends React.Component<Props, {}> {
   private requestAwake = async () => {
     const { monster, globalConfig } = this.props
 
-    const awakeInterval = (Date.now() - monster.lastBedAt) / 1000
+    const awakeInterval = Date.now() - monster.lastBedAt
     if (awakeInterval < globalConfig.min_sleep_period) {
-      return this.warnAction(`${monster.name} is not recovered yet`)
+      return alert(`${monster.name} is not tired yet`)
     }
 
     this.petAction("awakepet", "wake")
@@ -195,36 +164,36 @@ class MonsterCard extends React.Component<Props, {}> {
   private requestSleep = async () => {
     const { monster, globalConfig } = this.props
 
-    const bedInterval = (Date.now() - monster.lastAwakeAt) / 1000
+    const bedInterval = Date.now() - monster.lastAwakeAt
     if (bedInterval < globalConfig.min_awake_interval) {
-      return this.warnAction(`${monster.name} is not tired yet`)
+      return alert(`${monster.name} is not tired yet`)
     }
 
     this.petAction("bedpet", "bed")
   }
 
   private requestDestroy = async () => {
+    const { monster, globalConfig } = this.props
+
+    const bedInterval = Date.now() - monster.lastAwakeAt
+    if (bedInterval < globalConfig.min_awake_interval) {
+      return alert(`${monster.name} is not tired yet`)
+    }
+
     this.petAction("destroypet", "destroy")
   }
 
-  private warnAction = (text: string) => {
-    const { dispatchPushNotification } = this.props
-    dispatchPushNotification(text, NOTIFICATION_WARNING)
-  }
-
   private petAction = (action: string, text: string) => {
-    const { scatter, monster, requestUpdate, dispatchPushNotification } = this.props
+    const { scatter, monster, requestUpdate } = this.props
 
     trxPet(action, scatter, monster.id)
       .then((res: any) => {
         console.info(`Pet ${monster.id} ${text} successfully`, res)
-        dispatchPushNotification(`Pet ${monster.name} ${text} successfully`, NOTIFICATION_SUCCESS)
-        if (requestUpdate) {
-          requestUpdate()
-        }
+        alert(`Pet ${monster.name} ${text} successfully`)
+        requestUpdate()
       }).catch((err: any) => {
         console.error(`Fail to ${text} ${monster.id}`, err)
-        dispatchPushNotification(`Fail to ${text} ${monster.name}`, NOTIFICATION_ERROR)
+        alert(`Fail to ${text} ${monster.name}`)
       })
   }
 }
@@ -239,8 +208,4 @@ const mapStateToProps = (state: State) => {
   }
 }
 
-const mapDispatchToProps = {
-  dispatchPushNotification: pushNotification
-}
-
-export default connect(mapStateToProps, mapDispatchToProps)(MonsterCard)
+export default connect(mapStateToProps)(MonsterCard)
